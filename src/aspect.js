@@ -37,41 +37,47 @@ export const aspectFactory = ({ p1, p2 }) => {
   let ct = false; // corrected?
 
   // correct for cases where the angle > 180 + the orb of opposition
-  if (ng > 180 + aspectTypes["opposition"].orb) {
+  if (ng > 180 + aspectTypes.opposition.orb) {
     ng = l1 > l2 ? 360 - l1 + l2 : 360 - l2 + l1;
     ct = true;
   }
 
+  // determine parallelism
+  let isParallel = Math.abs(p1.latitude - p2.latitude) <= 1.0;
+  let isContraparallel = Math.abs(p1.latitude + p2.latitude) <= 1.0;
+
   // determine the aspect type
   let type = Object.values(aspectTypes).find(t => ng >= t.angle - t.orb && ng <= t.angle + t.orb);
 
-  // bail out if there is no in-orb aspect between these two planets
-  if (typeof type === "undefined") {
+  // bail out if there is no aspect or parallelism between these two planets
+  if ("undefined" === typeof type && !isParallel && !isContraparallel) {
     throw new Error("There is no aspect between these two planets.");
   }
 
-  // determine the orb
-  let orb = Number((ng % 1).toFixed(6));
+  let orb = null;
+  let isApplying = null;
 
-  // determine if it is applying or not; use speed magnitude (i.e. absolute value)
-  let ong = ng - type.angle;
-  let isApplying = (
-    ( 
-      (ong < 0 && !ct && l2 > l1) || (ong > 0 && !ct && l1 > l2) ||
-      (ong < 0 &&  ct && l1 > l2) || (ong > 0 &&  ct && l2 > l1) 
-    ) &&
-    ( (!r1 && !r2 && s2 > s1) || (r1 && r2 && s1 > s2) || (r1 && !r2) ) ||
-    (
-      ( 
-        (ong > 0 && !ct && l2 > l1) || (ong < 0 && !ct && l1 > l2) ||
-        (ong > 0 &&  ct && l1 > l2) || (ong < 0 &&  ct && l2 > l1)
+  if ("undefined" !== typeof type) {
+    // determine the orb
+    orb = Number((ng % 1).toFixed(6));
+
+    // determine if it is applying or not; use speed magnitude (i.e. absolute value)
+    let ong = ng - type.angle;
+    isApplying = (
+      (
+        (ong < 0 && !ct && l2 > l1) || (ong > 0 && !ct && l1 > l2) ||
+        (ong < 0 &&  ct && l1 > l2) || (ong > 0 &&  ct && l2 > l1)
       ) &&
-      ( (!r1 && !r2 && s1 > s2) || (r1 && r2 && s2 > s1) || (!r1 && r2) ) 
-    ) 
-  );
-
-  let isParallel = Math.abs(p1.latitude - p2.latitude) <= 1.0;
-  let isContraparallel = Math.abs(p1.latitude + p2.latitude) <= 1.0;
+      ( (!r1 && !r2 && s2 > s1) || (r1 && r2 && s1 > s2) || (r1 && !r2) ) ||
+      (
+        (
+          (ong > 0 && !ct && l2 > l1) || (ong < 0 && !ct && l1 > l2) ||
+          (ong > 0 &&  ct && l1 > l2) || (ong < 0 &&  ct && l2 > l1)
+        ) &&
+        ( (!r1 && !r2 && s1 > s2) || (r1 && r2 && s2 > s1) || (!r1 && r2) )
+      )
+    );
+  }
 
   return { p1, p2, type, orb, isApplying, isParallel, isContraparallel };
 };
